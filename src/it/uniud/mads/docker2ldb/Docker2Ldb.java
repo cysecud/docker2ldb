@@ -14,7 +14,7 @@ public class Docker2Ldb {
         Yaml yaml = new Yaml();
         Map<String, Map> o = (Map<String, Map>) yaml.load(input);
         Map<String, Map> services = o.get("services");
-        for (String service : services.keySet()) {
+        for (String service : services.keySet()) { // parse every service in docker-compose file
             System.out.println(services.get(service).keySet());
             System.out.println(services.get(service).values());
         }
