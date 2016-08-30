@@ -40,8 +40,8 @@ public class Docker2Ldb {
             if (services.get(service).get("ports") != null) {
                 List<String> mappings = (List<String>) services.get(service).get("ports");
                 for (String map : mappings) {
-                    String[] r = map.split("\\:");
-                    System.out.println("Service maps port " + r[1] + " to port "+ r[0] +", adding thme to interfaces.");
+                    String[] r = map.split(":");
+                    System.out.println("Service maps port " + r[1] + " to port " + r[0] + ", adding thme to interfaces.");
                     bb.addInnerNameOuterInterface(1, r[0], bb.addOuterNameInnerInterface(locality, r[1]));
                 }
             }
