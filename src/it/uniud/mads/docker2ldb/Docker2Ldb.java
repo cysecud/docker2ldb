@@ -12,15 +12,18 @@ import java.util.Map;
 
 public class Docker2Ldb {
     public static void main(String args[]) throws FileNotFoundException {
+        // preparing control and empty bigraph
         DirectedControl container = new DirectedControl("container_1", true, 1, 1);
         DirectedControl[] controls = {container};
         DirectedSignature signature = new DirectedSignature(controls);
         DirectedBigraphBuilder bb = new DirectedBigraphBuilder(signature);
         Root r0 = bb.addRoot(); // root 0
+        // parsing yaml config file
         InputStream input = new FileInputStream(new File("./etc/docker-compose.yml"));
         Yaml yaml = new Yaml();
         Map<String, Map> o = (Map<String, Map>) yaml.load(input);
         Map<String, Map> services = o.get("services");
+        // build the bigraph
         int locality = 1;
         OuterName net = bb.addOuterNameOuterInterface(1, "net");
         for (String service : services.keySet()) { // parse every service in docker-compose file
@@ -38,6 +41,7 @@ public class Docker2Ldb {
                 List<String> mappings = (List<String>) services.get(service).get("ports");
                 for (String map : mappings) {
                     String[] r = map.split("\\:");
+                    System.out.println("Service maps port " + r[1] + " to port "+ r[0] +", adding thme to interfaces.");
                     bb.addInnerNameOuterInterface(1, r[0], bb.addOuterNameInnerInterface(locality, r[1]));
                 }
             }
