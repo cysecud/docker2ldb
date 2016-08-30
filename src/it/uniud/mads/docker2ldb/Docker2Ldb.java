@@ -46,6 +46,14 @@ public class Docker2Ldb {
                 }
             }
 
+            if (services.get(service).get("links") != null) {
+                List<String> links = (List<String>) services.get(service).get("links");
+                for (String link : links) {
+                    System.out.println("Service links to container " + link + ", creating it on interfaces.");
+
+                }
+            }
+
             locality++;
         }
         System.out.println(bb);
