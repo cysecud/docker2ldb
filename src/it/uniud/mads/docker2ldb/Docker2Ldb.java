@@ -32,11 +32,13 @@ public class Docker2Ldb {
             System.out.println("Added a site to the bigraph.");
             bb.addInnerNameInnerInterface(locality, "net", net); // add default net
             bb.addInnerNameOuterInterface(1, service, bb.addOuterNameInnerInterface(locality, service)); // expose the name
+            // expose
             if (services.get(service).get("expose") != null) {
                 String port = (String) services.get(service).get("expose");
                 System.out.println("Service exposes a port " + port + ", adding it to the interface.");
                 bb.addOuterNameInnerInterface(locality, port);
             }
+            // ports
             if (services.get(service).get("ports") != null) {
                 List<String> mappings = (List<String>) services.get(service).get("ports");
                 for (String map : mappings) {
@@ -45,16 +47,15 @@ public class Docker2Ldb {
                     bb.addInnerNameOuterInterface(1, r[0], bb.addOuterNameInnerInterface(locality, r[1]));
                 }
             }
-
+            // links
             if (services.get(service).get("links") != null) {
                 List<String> links = (List<String>) services.get(service).get("links");
                 for (String link : links) {
-                    System.out.println("Service links to container " + link + ", creating it on interfaces.");
-
+                    System.out.println("Service links to container " + link + ", recreating this on interfaces.");
+                    bb.addInnerNameInnerInterface(locality, "l_"+link);
                 }
             }
-
-            locality++;
+            locality++; // ready for the next
         }
         System.out.println(bb);
     }
