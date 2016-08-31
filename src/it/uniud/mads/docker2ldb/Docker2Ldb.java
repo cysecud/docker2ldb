@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,6 +32,7 @@ public class Docker2Ldb {
         int locality = 1;
         DirectedBigraphBuilder[] containers = new DirectedBigraphBuilder[services.size()];
         OuterName net = cmp.addOuterNameOuterInterface(1, "net");
+        Map<String, OuterName> ons = new HashMap<>();
         System.out.println("Added default network");
 
         for (String service : services.keySet()) { // parse every service in docker-compose file
@@ -42,13 +44,14 @@ public class Docker2Ldb {
             DirectedBigraphBuilder current = new DirectedBigraphBuilder(signature);
             System.out.println("Creating a bigraph for the service.");
             Root currentRoot = current.addRoot(); // add a root
-            current.addSite(currentRoot); // add a site for future purposes
             Node node = current.addNode(container.getName(), currentRoot); // add a node of container type
+            current.addSite(node); // add a site for future purposes
             OuterName nameOuterInterface = current.addOuterNameOuterInterface(1, "net"); // add the name in the outer interface
             node.getOutPort(0).getEditable().setHandle(nameOuterInterface.getEditable()); // link the net to the node
 
             current.addInnerNameOuterInterface(1, service, node.getInPort(0).getEditable());
-            cmp.addInnerNameOuterInterface(1, service, cmp.addOuterNameInnerInterface(locality, service)); // expose the name
+            ons.put(service, cmp.addOuterNameInnerInterface(locality, service));
+            cmp.addInnerNameOuterInterface(1, service, ons.get(service)); // expose the name
 
             // expose
             if (services.get(service).get("expose") != null) {
@@ -73,16 +76,16 @@ public class Docker2Ldb {
                 for (String link : links) {
                     System.out.println("Service links to container " + link + ", recreating this on interfaces.");
                     current.addInnerNameInnerInterface(1, "l_" + link, current.addOuterNameOuterInterface(1, "l_" + link));
-                    cmp.addInnerNameInnerInterface(locality, "l_" + link);
+                    cmp.addInnerNameInnerInterface(locality, "l_" + link, ons.get(link));
                 }
             }
             //System.out.println("Service bigraph: " + current);
-            containers[locality-1]=current;
+            containers[locality - 1] = current;
             locality++; // ready for the next
         }
-        for (DirectedBigraphBuilder bbb : containers) {
-            System.out.println(bbb);
-        }
+//        for (DirectedBigraphBuilder bbb : containers) {
+//            System.out.println(bbb);
+//        }
         System.out.println(cmp);
     }
 }
