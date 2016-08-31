@@ -23,3 +23,6 @@
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Other custom files
+etc/
