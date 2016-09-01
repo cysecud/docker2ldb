@@ -83,9 +83,15 @@ public class Docker2Ldb {
             containers[locality - 1] = current;
             locality++; // ready for the next
         }
-//        for (DirectedBigraphBuilder bbb : containers) {
-//            System.out.println(bbb);
-//        }
+        for (DirectedBigraphBuilder bbb : containers) {
+            System.out.println("Container: ");
+            System.out.println(bbb);
+            System.out.println("-----------------------");
+        }
+        //DirectedBigraph db = containers[1].makeBigraph();
+        //System.out.println(db);
+        //containers[0].rightJuxtapose(db);
+
         System.out.println(cmp);
     }
 }
