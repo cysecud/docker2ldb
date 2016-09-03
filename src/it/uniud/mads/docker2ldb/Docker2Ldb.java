@@ -90,10 +90,8 @@ public class Docker2Ldb {
             System.out.println(bbb);
             System.out.println("-----------------------");
         }
-        //DirectedBigraph db = containers[1].makeBigraph();
-        //System.out.println(db);
-        //containers[0].rightJuxtapose(db);
 
-        System.out.println(cmp);
+        containers[0].rightJuxtapose(containers[1].makeBigraph());
+        System.out.println(containers[0]);
     }
 }
