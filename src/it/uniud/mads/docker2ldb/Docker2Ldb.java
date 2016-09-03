@@ -55,10 +55,12 @@ public class Docker2Ldb {
 
             // expose
             if (services.get(service).get("expose") != null) {
-                String port = (String) services.get(service).get("expose");
-                System.out.println("Service exposes a port " + port + ", adding it to the interface.");
-                current.addInnerNameOuterInterface(1, port, current.addOuterNameInnerInterface(1, port));
-                cmp.addOuterNameInnerInterface(locality, port);
+                List<String> ports = (List<String>) services.get(service).get("expose");
+                for (String port : ports) {
+                    System.out.println("Service exposes a port " + port + ", adding it to the interface.");
+                    current.addInnerNameOuterInterface(1, port, current.addOuterNameInnerInterface(1, port));
+                    cmp.addOuterNameInnerInterface(locality, port);
+                }
             }
             // ports
             if (services.get(service).get("ports") != null) {
