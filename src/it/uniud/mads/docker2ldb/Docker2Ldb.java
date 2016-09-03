@@ -31,7 +31,7 @@ public class Docker2Ldb {
         // build the bigraph
         int locality = 1;
         DirectedBigraphBuilder[] containers = new DirectedBigraphBuilder[services.size()];
-        OuterName net = cmp.addOuterNameOuterInterface(1, "net");
+        OuterName net = cmp.addAscNameOuterInterface(1, "net");
         Map<String, OuterName> ons = new HashMap<>();
         System.out.println("Added default network");
 
@@ -39,27 +39,27 @@ public class Docker2Ldb {
             System.out.println("Service: " + service);
             cmp.addSite(r0); // add a site
             System.out.println("Added a site to the bigraph.");
-            cmp.addInnerNameInnerInterface(locality, "net", net); // add default net
+            cmp.addAscNameInnerInterface(locality, "net", net); // add default net
 
             DirectedBigraphBuilder current = new DirectedBigraphBuilder(signature);
             System.out.println("Creating a bigraph for the service.");
             Root currentRoot = current.addRoot(); // add a root
             Node node = current.addNode(container.getName(), currentRoot); // add a node of container type
             current.addSite(node); // add a site for future purposes
-            OuterName nameOuterInterface = current.addOuterNameOuterInterface(1, "net"); // add the name in the outer interface
+            OuterName nameOuterInterface = current.addAscNameOuterInterface(1, "net"); // add the name in the outer interface
             node.getOutPort(0).getEditable().setHandle(nameOuterInterface.getEditable()); // link the net to the node
 
-            current.addInnerNameOuterInterface(1, service, node.getInPort(0).getEditable());
-            ons.put(service, cmp.addOuterNameInnerInterface(locality, service));
-            cmp.addInnerNameOuterInterface(1, service, ons.get(service)); // expose the name
+            current.addDescNameOuterInterface(1, service, node.getInPort(0).getEditable());
+            ons.put(service, cmp.addDescNameInnerInterface(locality, service));
+            cmp.addDescNameOuterInterface(1, service, ons.get(service)); // expose the name
 
             // expose
             if (services.get(service).get("expose") != null) {
                 List<String> ports = (List<String>) services.get(service).get("expose");
                 for (String port : ports) {
                     System.out.println("Service exposes a port " + port + ", adding it to the interface.");
-                    current.addInnerNameOuterInterface(1, port, current.addOuterNameInnerInterface(1, port));
-                    cmp.addOuterNameInnerInterface(locality, port);
+                    current.addDescNameOuterInterface(1, port, current.addDescNameInnerInterface(1, port));
+                    cmp.addDescNameInnerInterface(locality, port);
                 }
             }
             // ports
@@ -68,8 +68,8 @@ public class Docker2Ldb {
                 for (String map : mappings) {
                     String[] r = map.split(":");
                     System.out.println("Service maps port " + r[1] + " to port " + r[0] + ", adding them to interfaces.");
-                    current.addInnerNameOuterInterface(1, r[1], current.addOuterNameInnerInterface(1, r[1]));
-                    cmp.addInnerNameOuterInterface(1, r[0], cmp.addOuterNameInnerInterface(locality, r[1]));
+                    current.addDescNameOuterInterface(1, r[1], current.addDescNameInnerInterface(1, r[1]));
+                    cmp.addDescNameOuterInterface(1, r[0], cmp.addDescNameInnerInterface(locality, r[1]));
                 }
             }
             // links
@@ -77,8 +77,8 @@ public class Docker2Ldb {
                 List<String> links = (List<String>) services.get(service).get("links");
                 for (String link : links) {
                     System.out.println("Service links to container " + link + ", recreating this on interfaces.");
-                    current.addInnerNameInnerInterface(1, "l_" + link, current.addOuterNameOuterInterface(1, "l_" + link));
-                    cmp.addInnerNameInnerInterface(locality, "l_" + link, ons.get(link));
+                    current.addAscNameInnerInterface(1, "l_" + link, current.addAscNameOuterInterface(1, "l_" + link));
+                    cmp.addAscNameInnerInterface(locality, "l_" + link, ons.get(link));
                 }
             }
             //System.out.println("Service bigraph: " + current);
