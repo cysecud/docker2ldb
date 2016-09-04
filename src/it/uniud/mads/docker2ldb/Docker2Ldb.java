@@ -13,7 +13,16 @@ import java.util.List;
 import java.util.Map;
 
 public class Docker2Ldb {
-    public static void main(String args[]) throws FileNotFoundException {
+
+    public static void main(String args[]) {
+        try {
+            System.out.println("Composed bigraph: \n" + docker2ldb("./etc/docker-compose.yml"));
+        } catch (FileNotFoundException e) {
+            System.err.println("File not found");
+        }
+    }
+
+    private static DirectedBigraph docker2ldb(String pathToYAML) throws FileNotFoundException {
         // preparing control and empty bigraph
         DirectedControl container = new DirectedControl("container_1", true, 1, 1);
         DirectedControl[] controls = {container};
@@ -24,18 +33,19 @@ public class Docker2Ldb {
         System.out.println("Added a root to the bigraph.");
 
         // parsing yaml config file
-        InputStream input = new FileInputStream(new File("./etc/docker-compose.yml"));
+        InputStream input = new FileInputStream(new File(pathToYAML));
         Yaml yaml = new Yaml();
         Map<String, Map> o = (Map<String, Map>) yaml.load(input);
         Map<String, Map> services = o.get("services");
+        System.out.println("YAML config file correctly loaded.");
 
         // build the bigraph
         int locality = 1;
-        List<DirectedBigraphBuilder> containers = new ArrayList<>(services.size());
+        List<DirectedBigraphBuilder> builders = new ArrayList<>(services.size());
         List<DirectedBigraph> graphs = new ArrayList<>(services.size());
         OuterName net = cmp.addAscNameOuterInterface(1, "net");
-        Map<String, OuterName> ons = new HashMap<>();
-        System.out.println("Added default network");
+        Map<String, OuterName> names = new HashMap<>();
+        System.out.println("Added default network.");
 
         for (String service : services.keySet()) { // parse every service in docker-compose file
             System.out.println("Service: " + service);
@@ -48,18 +58,17 @@ public class Docker2Ldb {
             Root currentRoot = current.addRoot(); // add a root
             Node node = current.addNode(container.getName(), currentRoot); // add a node of container type
             current.addSite(node); // add a site for future purposes
-            OuterName nameOuterInterface = current.addAscNameOuterInterface(1, "net"); // add the name in the outer interface
-            node.getOutPort(0).getEditable().setHandle(nameOuterInterface.getEditable()); // link the net to the node
+            node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "net").getEditable()); // link the net to the node
 
             current.addDescNameOuterInterface(1, service, node.getInPort(0).getEditable());
-            ons.put(service, cmp.addDescNameInnerInterface(locality, service));
-            cmp.addDescNameOuterInterface(1, service, ons.get(service)); // expose the name
+            names.put(service, cmp.addDescNameInnerInterface(locality, service));
+            cmp.addDescNameOuterInterface(1, service, names.get(service)); // expose the name
 
             // expose
             if (services.get(service).get("expose") != null) {
                 List<String> ports = (List<String>) services.get(service).get("expose");
                 for (String port : ports) {
-                    System.out.println("Service exposes a port " + port + ", adding it to the interface.");
+                    System.out.println("Service exposes port " + port + ", adding it to the interface.");
                     current.addDescNameOuterInterface(1, port, current.addDescNameInnerInterface(1, port));
                     cmp.addDescNameInnerInterface(locality, port);
                 }
@@ -68,10 +77,10 @@ public class Docker2Ldb {
             if (services.get(service).get("ports") != null) {
                 List<String> mappings = (List<String>) services.get(service).get("ports");
                 for (String map : mappings) {
-                    String[] r = map.split(":");
-                    System.out.println("Service maps port " + r[1] + " to port " + r[0] + ", adding them to interfaces.");
-                    current.addDescNameOuterInterface(1, r[1], current.addDescNameInnerInterface(1, r[1]));
-                    cmp.addDescNameOuterInterface(1, r[0], cmp.addDescNameInnerInterface(locality, r[1]));
+                    String[] ps = map.split(":");
+                    System.out.println("Service maps port " + ps[1] + " to port " + ps[0] + ", adding them to interfaces.");
+                    current.addDescNameOuterInterface(1, ps[1], current.addDescNameInnerInterface(1, ps[1]));
+                    cmp.addDescNameOuterInterface(1, ps[0], cmp.addDescNameInnerInterface(locality, ps[1]));
                 }
             }
             // links
@@ -80,24 +89,19 @@ public class Docker2Ldb {
                 for (String link : links) {
                     System.out.println("Service links to container " + link + ", recreating this on interfaces.");
                     current.addAscNameInnerInterface(1, "l_" + link, current.addAscNameOuterInterface(1, "l_" + link));
-                    cmp.addAscNameInnerInterface(locality, "l_" + link, ons.get(link));
+                    cmp.addAscNameInnerInterface(locality, "l_" + link, names.get(link));
                 }
             }
-            //System.out.println("Service bigraph: " + current);
-            containers.add(current);
+            System.out.println("Resulting bigraph: \n" + current);
+            System.out.println("----------------------------------------------");
+            builders.add(current);
             graphs.add(current.makeBigraph());
             locality++; // ready for the next
         }
-        for (DirectedBigraphBuilder bbb : containers) {
-            System.out.println("Container: ");
-            System.out.println(bbb);
-            System.out.println("-----------------------");
-        }
-        System.out.println(cmp);
-//        System.out.println(DirectedBigraph.compose(cmp.makeBigraph(), graphs.get(0)));
+        System.out.println("Compose bigraph: \n" + cmp);
+        System.out.println("----------------------------------------------");
         List<DirectedBigraph> outs = new ArrayList<>();
         outs.add(cmp.makeBigraph());
-        DirectedBigraph res = DirectedBigraph.compose(outs, graphs);
-        System.out.println(res);
+        return DirectedBigraph.compose(outs, graphs);
     }
 }
