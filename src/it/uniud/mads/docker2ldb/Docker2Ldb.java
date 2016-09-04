@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +31,7 @@ public class Docker2Ldb {
 
         // build the bigraph
         int locality = 1;
-        DirectedBigraphBuilder[] containers = new DirectedBigraphBuilder[services.size()];
+        List<DirectedBigraphBuilder> containers = new ArrayList<>(services.size());
         OuterName net = cmp.addAscNameOuterInterface(1, "net");
         Map<String, OuterName> ons = new HashMap<>();
         System.out.println("Added default network");
@@ -82,7 +83,7 @@ public class Docker2Ldb {
                 }
             }
             //System.out.println("Service bigraph: " + current);
-            containers[locality - 1] = current;
+            containers.add(current);
             locality++; // ready for the next
         }
         for (DirectedBigraphBuilder bbb : containers) {
@@ -91,7 +92,7 @@ public class Docker2Ldb {
             System.out.println("-----------------------");
         }
 
-        containers[0].rightJuxtapose(containers[1].makeBigraph());
-        System.out.println(containers[0]);
+        containers.get(0).rightJuxtapose(containers.get(1).makeBigraph());
+        System.out.println(containers.get(0));
     }
 }
