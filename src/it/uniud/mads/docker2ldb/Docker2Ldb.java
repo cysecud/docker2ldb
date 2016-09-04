@@ -32,6 +32,7 @@ public class Docker2Ldb {
         // build the bigraph
         int locality = 1;
         List<DirectedBigraphBuilder> containers = new ArrayList<>(services.size());
+        List<DirectedBigraph> graphs = new ArrayList<>(services.size());
         OuterName net = cmp.addAscNameOuterInterface(1, "net");
         Map<String, OuterName> ons = new HashMap<>();
         System.out.println("Added default network");
@@ -84,6 +85,7 @@ public class Docker2Ldb {
             }
             //System.out.println("Service bigraph: " + current);
             containers.add(current);
+            graphs.add(current.makeBigraph());
             locality++; // ready for the next
         }
         for (DirectedBigraphBuilder bbb : containers) {
@@ -91,8 +93,11 @@ public class Docker2Ldb {
             System.out.println(bbb);
             System.out.println("-----------------------");
         }
-
-        containers.get(0).rightJuxtapose(containers.get(1).makeBigraph());
-        System.out.println(containers.get(0));
+        System.out.println(cmp);
+//        System.out.println(DirectedBigraph.compose(cmp.makeBigraph(), graphs.get(0)));
+        List<DirectedBigraph> outs = new ArrayList<>();
+        outs.add(cmp.makeBigraph());
+        DirectedBigraph res = DirectedBigraph.compose(outs, graphs);
+        System.out.println(res);
     }
 }
