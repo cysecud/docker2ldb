@@ -87,9 +87,16 @@ public class Docker2Ldb {
             if (services.get(service).get("links") != null) {
                 List<String> links = (List<String>) services.get(service).get("links");
                 for (String link : links) {
-                    System.out.println("Service links to container " + link + ", recreating this on interfaces.");
-                    current.addAscNameInnerInterface(1, "l_" + link, current.addAscNameOuterInterface(1, "l_" + link));
-                    cmp.addAscNameInnerInterface(locality, "l_" + link, names.get(link));
+                    String[] ls = link.split(":");
+                    if (ls.length > 1) {
+                        System.out.println("Service links to container " + ls[0] + ", renaming it to " + ls[1] + " recreating this on interfaces.");
+                        current.addAscNameInnerInterface(1, "l_" + ls[1], current.addAscNameOuterInterface(1, "l_" + ls[1]));
+                        cmp.addAscNameInnerInterface(locality, "l_" + ls[1], names.get(ls[0]));
+                    } else {
+                        System.out.println("Service links to container " + link + ", recreating this on interfaces.");
+                        current.addAscNameInnerInterface(1, "l_" + link, current.addAscNameOuterInterface(1, "l_" + link));
+                        cmp.addAscNameInnerInterface(locality, "l_" + link, names.get(link));
+                    }
                 }
             }
             System.out.println("Resulting bigraph: \n" + current);
