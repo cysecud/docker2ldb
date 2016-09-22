@@ -47,11 +47,18 @@ public class Docker2Ldb {
         Map<String, OuterName> names = new HashMap<>();
         System.out.println("Added default network.");
 
-        for (String service : services.keySet()) { // parse every service in docker-compose file
-            System.out.println("Service: " + service);
+        for(String service : services.keySet()) {
             cmp.addSite(r0); // add a site
             System.out.println("Added a site to the bigraph.");
             cmp.addAscNameInnerInterface(locality, "net", net); // add default net
+            names.put(service, cmp.addDescNameInnerInterface(locality, service));
+            cmp.addDescNameOuterInterface(1, service, names.get(service)); // expose the name
+            locality++;
+        }
+
+        locality=1;
+        for (String service : services.keySet()) { // parse every service in docker-compose file
+            System.out.println("Service: " + service);
 
             DirectedBigraphBuilder current = new DirectedBigraphBuilder(signature);
             System.out.println("Creating a bigraph for the service.");
@@ -61,8 +68,6 @@ public class Docker2Ldb {
             node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "net").getEditable()); // link the net to the node
 
             current.addDescNameOuterInterface(1, service, node.getInPort(0).getEditable());
-            names.put(service, cmp.addDescNameInnerInterface(locality, service));
-            cmp.addDescNameOuterInterface(1, service, names.get(service)); // expose the name
 
             // expose
             if (services.get(service).get("expose") != null) {
