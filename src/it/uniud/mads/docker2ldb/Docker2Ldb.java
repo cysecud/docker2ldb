@@ -17,12 +17,12 @@ public class Docker2Ldb {
     public static void main(String args[]) {
         try {
             System.out.println("Composed bigraph: \n" + docker2ldb("./etc/docker-compose.yml"));
-        } catch (FileNotFoundException e) {
-            System.err.println("File not found");
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
         }
     }
 
-    private static DirectedBigraph docker2ldb(String pathToYAML) throws FileNotFoundException {
+    private static DirectedBigraph docker2ldb(String pathToYAML) throws Exception {
         // preparing control and empty bigraph
         DirectedControl container = new DirectedControl("container_1", true, 1, 1);
         DirectedControl[] controls = {container};
@@ -49,7 +49,10 @@ public class Docker2Ldb {
         // networks
         if (networks != null) {
             default_net = false;
-
+            for (String net : networks.keySet()) {
+                nets.put(net, cmp.addAscNameOuterInterface(1, net));
+                System.out.print("Added " + net + " network.");
+            }
         } else {
             default_net = true;
             nets.put("default", cmp.addAscNameOuterInterface(1, "default"));
@@ -85,7 +88,18 @@ public class Docker2Ldb {
             if (default_net) {
                 node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "default").getEditable()); // link the net to the node
             } else {
-
+                if (services.get(service).get("networks") != null) {
+                   List<String> lnetworks = (List<String>) services.get(service).get("networks");
+                    int i=0;
+                    for (String network : lnetworks) {
+                        System.out.println("Service connects to network " + network + ", adding it to the interface.");
+                        node.getOutPort(i).getEditable().setHandle(current.addAscNameOuterInterface(1, network).getEditable()); // link the net to the node
+                        cmp.addAscNameInnerInterface(locality, network, nets.get(network));
+                        i++;
+                    }
+                } else {
+                    throw new Exception("You must declare service networks, because you declared global networks!");
+                }
             }
             // expose
             if (services.get(service).get("expose") != null) {
