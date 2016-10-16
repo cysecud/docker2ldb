@@ -37,30 +37,40 @@ public class Docker2Ldb {
         Yaml yaml = new Yaml();
         Map<String, Map> o = (Map<String, Map>) yaml.load(input);
         Map<String, Map> services = o.get("services");
+        Map<String, Map> networks = o.get("networks");
         System.out.println("YAML config file correctly loaded.");
+        boolean default_net = true;
 
         // build the bigraph
         int locality = 1;
-        List<DirectedBigraphBuilder> builders = new ArrayList<>(services.size());
-        System.out.println("Added default network.");
+        List<DirectedBigraph> graphs = new ArrayList<>(services.size());
+        Map<String, OuterName> nets = new HashMap<>();
 
         // networks
-        List<DirectedBigraph> graphs = new ArrayList<>(services.size());
-        OuterName net = cmp.addAscNameOuterInterface(1, "default");
+        if (networks != null) {
+            default_net = false;
+
+        } else {
+            default_net = true;
+            nets.put("default", cmp.addAscNameOuterInterface(1, "default"));
+            System.out.println("Added default network.");
+        }
 
         // save service names
         Map<String, OuterName> names = new HashMap<>();
 
-        for(String service : services.keySet()) {
+        for (String service : services.keySet()) {
             cmp.addSite(r0); // add a site
             System.out.println("Added a site to the bigraph.");
-            cmp.addAscNameInnerInterface(locality, "default", net); // add default net
+            if (default_net) {
+                cmp.addAscNameInnerInterface(locality, "default", nets.get("default")); // add default net
+            }
             names.put(service, cmp.addDescNameInnerInterface(locality, service));
             cmp.addDescNameOuterInterface(1, service, names.get(service)); // expose the name
             locality++;
         }
 
-        locality=1;
+        locality = 1;
         for (String service : services.keySet()) { // parse every service in docker-compose file
             System.out.println("Service: " + service);
 
@@ -69,10 +79,14 @@ public class Docker2Ldb {
             Root currentRoot = current.addRoot(); // add a root
             Node node = current.addNode(container.getName(), currentRoot); // add a node of container type
             current.addSite(node); // add a site for future purposes
-            node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "default").getEditable()); // link the net to the node
 
             current.addDescNameOuterInterface(1, service, node.getInPort(0).getEditable());
+            // networks
+            if (default_net) {
+                node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "default").getEditable()); // link the net to the node
+            } else {
 
+            }
             // expose
             if (services.get(service).get("expose") != null) {
                 List<String> ports = (List<String>) services.get(service).get("expose");
@@ -110,7 +124,6 @@ public class Docker2Ldb {
             }
             System.out.println("Resulting bigraph: \n" + current);
             System.out.println("----------------------------------------------");
-            builders.add(current);
             graphs.add(current.makeBigraph());
             locality++; // ready for the next
         }
