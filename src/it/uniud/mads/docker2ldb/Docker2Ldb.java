@@ -104,10 +104,11 @@ public class Docker2Ldb {
             }
 
             current.addSite(node); // add a site for future purposes
-
             current.addDescNameOuterInterface(1, service, node.getInPort(0).getEditable());
+
             // networks
             if (default_net) {
+                System.out.println("Service connects to network default, adding it to the interface.");
                 node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "default").getEditable()); // link the net to the node
             } else {
                 int i = 0;
@@ -158,8 +159,10 @@ public class Docker2Ldb {
         }
         System.out.println("Compose bigraph: \n" + cmp);
         System.out.println("----------------------------------------------");
+
         List<DirectedBigraph> outs = new ArrayList<>();
         outs.add(cmp.makeBigraph());
+
         return DirectedBigraph.compose(outs, graphs);
     }
 }
