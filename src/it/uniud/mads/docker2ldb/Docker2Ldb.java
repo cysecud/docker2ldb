@@ -42,15 +42,19 @@ public class Docker2Ldb {
         // build the bigraph
         int locality = 1;
         List<DirectedBigraphBuilder> builders = new ArrayList<>(services.size());
-        List<DirectedBigraph> graphs = new ArrayList<>(services.size());
-        OuterName net = cmp.addAscNameOuterInterface(1, "net");
-        Map<String, OuterName> names = new HashMap<>();
         System.out.println("Added default network.");
+
+        // networks
+        List<DirectedBigraph> graphs = new ArrayList<>(services.size());
+        OuterName net = cmp.addAscNameOuterInterface(1, "default");
+
+        // save service names
+        Map<String, OuterName> names = new HashMap<>();
 
         for(String service : services.keySet()) {
             cmp.addSite(r0); // add a site
             System.out.println("Added a site to the bigraph.");
-            cmp.addAscNameInnerInterface(locality, "net", net); // add default net
+            cmp.addAscNameInnerInterface(locality, "default", net); // add default net
             names.put(service, cmp.addDescNameInnerInterface(locality, service));
             cmp.addDescNameOuterInterface(1, service, names.get(service)); // expose the name
             locality++;
@@ -65,7 +69,7 @@ public class Docker2Ldb {
             Root currentRoot = current.addRoot(); // add a root
             Node node = current.addNode(container.getName(), currentRoot); // add a node of container type
             current.addSite(node); // add a site for future purposes
-            node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "net").getEditable()); // link the net to the node
+            node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "default").getEditable()); // link the net to the node
 
             current.addDescNameOuterInterface(1, service, node.getInPort(0).getEditable());
 
