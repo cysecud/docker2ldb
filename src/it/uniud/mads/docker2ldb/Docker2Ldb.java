@@ -67,8 +67,8 @@ public class Docker2Ldb {
             }
         }
 
-        // save service names
-        Map<String, OuterName> names = new HashMap<>();
+        // save service outer names
+        Map<String, OuterName> onames = new HashMap<>();
 
         for (String service : services.keySet()) {
             cmp.addSite(r0); // add a site
@@ -76,15 +76,15 @@ public class Docker2Ldb {
             if (default_net) {
                 cmp.addAscNameInnerInterface(locality, "default", net_names.get("default")); // add default net
             }
-            names.put(service, cmp.addDescNameInnerInterface(locality, service));
-            cmp.addDescNameOuterInterface(1, service, names.get(service)); // expose the name
+            onames.put(service, cmp.addDescNameInnerInterface(locality, service));
+            cmp.addDescNameOuterInterface(1, service, onames.get(service)); // expose the name
             locality++;
         }
 
         locality = 1;
         for (String service : services.keySet()) { // parse every service in docker-compose file
             System.out.println("Service: " + service);
-            List<String> local_nets = (List<String>) services.get(service).get("networks");
+            List<String> current_nets = (List<String>) services.get(service).get("networks");
             List<String> ports = (List<String>) services.get(service).get("expose");
             List<String> mappings = (List<String>) services.get(service).get("ports");
             List<String> links = (List<String>) services.get(service).get("links");
@@ -96,8 +96,8 @@ public class Docker2Ldb {
             if (default_net) {
                 node = current.addNode("container_1", currentRoot); // add a node of container type
             } else {
-                if (local_nets != null) {
-                    node = current.addNode("container_" + local_nets.size(), currentRoot); // add a node of container type with the correct number of networks
+                if (current_nets != null) {
+                    node = current.addNode("container_" + current_nets.size(), currentRoot); // add a node of container type with the correct number of networks
                 } else {
                     throw new Exception("You must declare service networks, because you declared global networks!");
                 }
@@ -113,7 +113,10 @@ public class Docker2Ldb {
             } else {
                 int i = 0;
                 // local_nets cannot be null because previous exception was skipped
-                for (String network : local_nets) {
+                for (String network : current_nets) {
+                    if (!networks.keySet().contains(network)) {
+                        throw new Exception("Network " + network + " not declared.");
+                    }
                     System.out.println("Service connects to network " + network + ", adding it to the interface.");
                     node.getOutPort(i).getEditable().setHandle(current.addAscNameOuterInterface(1, network).getEditable()); // link the net to the node
                     cmp.addAscNameInnerInterface(locality, network, net_names.get(network));
@@ -143,12 +146,27 @@ public class Docker2Ldb {
                     String[] ls = link.split(":");
                     if (ls.length > 1) {
                         System.out.println("Service links to container " + ls[0] + ", renaming it to " + ls[1] + " recreating this on interfaces.");
-                        current.addAscNameInnerInterface(1, "l_" + ls[1], current.addAscNameOuterInterface(1, "l_" + ls[1]));
-                        cmp.addAscNameInnerInterface(locality, "l_" + ls[1], names.get(ls[0]));
+                        current.addAscNameInnerInterface(1, "l_" + ls[1] + "_" + service, current.addAscNameOuterInterface(1, "l_" + ls[1] + "_" + service));
+                        cmp.addAscNameInnerInterface(locality, "l_" + ls[1] + "_" + service, onames.get(ls[0]));
                     } else {
-                        System.out.println("Service links to container " + link + ", recreating this on interfaces.");
-                        current.addAscNameInnerInterface(1, "l_" + link, current.addAscNameOuterInterface(1, "l_" + link));
-                        cmp.addAscNameInnerInterface(locality, "l_" + link, names.get(link));
+                        System.out.println("Service links to container " + ls[0] + ", recreating this on interfaces.");
+                        current.addAscNameInnerInterface(1, "l_" + ls[0] + "_" + service, current.addAscNameOuterInterface(1, "l_" + ls[0] + "_" + service));
+                        cmp.addAscNameInnerInterface(locality, "l_" + ls[0] + "_" + service, onames.get(ls[0]));
+                    }
+                    // check if the two containers have at least one network in common
+                    if (!default_net) {
+                        List<String> other_nets = (List<String>) services.get(ls[0]).get("networks");
+                        boolean net_in_common = false;
+
+                        for (String n : other_nets) {
+                            if (current_nets.contains(n)) {
+                                net_in_common = true;
+                                break;
+                            }
+                        }
+                        if (!net_in_common) {
+                            throw new Exception("You cannot link two containers that are not in the same network.");
+                        }
                     }
                 }
             }
