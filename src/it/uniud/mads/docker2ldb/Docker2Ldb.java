@@ -25,9 +25,12 @@ public class Docker2Ldb {
         // parsing yaml config file
         InputStream input = new FileInputStream(new File(pathToYAML));
         Yaml yaml = new Yaml();
+        // declarations in the docker-compose.yml file
         Map<String, Map> o = (Map<String, Map>) yaml.load(input);
         Map<String, Map> services = o.get("services");
         Map<String, Map> networks = o.get("networks");
+        Map<String, Map> volumes = o.get("volumes");
+
         System.out.println("YAML config file correctly loaded.");
 
         boolean default_net = true; // used to know if networks are used
@@ -51,24 +54,32 @@ public class Docker2Ldb {
         Root r0 = cmp.addRoot(); // root 0
         System.out.println("Added a root to the bigraph.");
 
-        // build the bigraph
-        int locality = 1;
-        List<DirectedBigraph> graphs = new ArrayList<>(services.size());
-        Map<String, OuterName> net_names = new HashMap<>();
-
         // networks
+        Map<String, OuterName> net_names = new HashMap<>();
         if (default_net) {
             net_names.put("default", cmp.addAscNameOuterInterface(1, "default"));
-            System.out.println("Added default network.");
+            System.out.println("Added \"default\" network.");
         } else {
             for (String net : networks.keySet()) {
                 net_names.put(net, cmp.addAscNameOuterInterface(1, net));
-                System.out.println("Added " + net + " network.");
+                System.out.println("Added \"" + net + "\" network.");
+            }
+        }
+
+        //volumes
+        Map<String, OuterName> vol_names = new HashMap<>();
+        if (volumes != null) {
+            for (String volume : volumes.keySet()) {
+                vol_names.put(volume, cmp.addAscNameOuterInterface(1, volume));
+                System.out.println("Added named volume \"" + volume + "\".");
             }
         }
 
         // save service outer names
+        int locality = 1;
         Map<String, OuterName> onames = new HashMap<>();
+
+        List<DirectedBigraph> graphs = new ArrayList<>(services.size());
 
         for (String service : services.keySet()) {
             cmp.addSite(r0); // add a site
@@ -99,7 +110,7 @@ public class Docker2Ldb {
                 if (current_nets != null) {
                     node = current.addNode("container_" + current_nets.size(), currentRoot); // add a node of container type with the correct number of networks
                 } else {
-                    throw new Exception("You must declare service networks, because you declared global networks!");
+                    throw new Exception("You must declare networks service connects to, because you declared global networks!");
                 }
             }
 
@@ -108,16 +119,16 @@ public class Docker2Ldb {
 
             // networks
             if (default_net) {
-                System.out.println("Service connects to network default, adding it to the interface.");
+                System.out.println("Service connects to network \"default\", adding it to the interface.");
                 node.getOutPort(0).getEditable().setHandle(current.addAscNameOuterInterface(1, "default").getEditable()); // link the net to the node
             } else {
                 int i = 0;
                 // local_nets cannot be null because previous exception was skipped
                 for (String network : current_nets) {
                     if (!networks.keySet().contains(network)) {
-                        throw new Exception("Network " + network + " not declared.");
+                        throw new Exception("Network \"" + network + "\" not declared.");
                     }
-                    System.out.println("Service connects to network " + network + ", adding it to the interface.");
+                    System.out.println("Service connects to network \" + network + "\", adding it to the interface.");
                     node.getOutPort(i).getEditable().setHandle(current.addAscNameOuterInterface(1, network).getEditable()); // link the net to the node
                     cmp.addAscNameInnerInterface(locality, network, net_names.get(network));
                     i++;
@@ -145,11 +156,11 @@ public class Docker2Ldb {
                 for (String link : links) {
                     String[] ls = link.split(":");
                     if (ls.length > 1) {
-                        System.out.println("Service links to container " + ls[0] + ", renaming it to " + ls[1] + " recreating this on interfaces.");
+                        System.out.println("Service links to container \"" + ls[0] + "\", renaming it to \"" + ls[1] + "\" recreating this on interfaces.");
                         current.addAscNameInnerInterface(1, "l_" + ls[1] + "_" + service, current.addAscNameOuterInterface(1, "l_" + ls[1] + "_" + service));
                         cmp.addAscNameInnerInterface(locality, "l_" + ls[1] + "_" + service, onames.get(ls[0]));
                     } else {
-                        System.out.println("Service links to container " + ls[0] + ", recreating this on interfaces.");
+                        System.out.println("Service links to container \"" + ls[0] + "\", recreating this on interfaces.");
                         current.addAscNameInnerInterface(1, "l_" + ls[0] + "_" + service, current.addAscNameOuterInterface(1, "l_" + ls[0] + "_" + service));
                         cmp.addAscNameInnerInterface(locality, "l_" + ls[0] + "_" + service, onames.get(ls[0]));
                     }
