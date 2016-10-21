@@ -128,7 +128,7 @@ public class Docker2Ldb {
                     if (!networks.keySet().contains(network)) {
                         throw new Exception("Network \"" + network + "\" not declared.");
                     }
-                    System.out.println("Service connects to network \" + network + "\", adding it to the interface.");
+                    System.out.println("Service connects to network \"" + network + "\", adding it to the interface.");
                     node.getOutPort(i).getEditable().setHandle(current.addAscNameOuterInterface(1, network).getEditable()); // link the net to the node
                     cmp.addAscNameInnerInterface(locality, network, net_names.get(network));
                     i++;
