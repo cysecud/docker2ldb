@@ -153,21 +153,6 @@ public class Docker2Ldb {
                         current.addAscNameInnerInterface(1, "l_" + ls[0] + "_" + service, current.addAscNameOuterInterface(1, "l_" + ls[0] + "_" + service));
                         cmp.addAscNameInnerInterface(locality, "l_" + ls[0] + "_" + service, onames.get(ls[0]));
                     }
-                    // check if the two containers have at least one network in common
-                    if (!default_net) {
-                        List<String> other_nets = (List<String>) services.get(ls[0]).get("networks");
-                        boolean net_in_common = false;
-
-                        for (String n : other_nets) {
-                            if (current_nets.contains(n)) {
-                                net_in_common = true;
-                                break;
-                            }
-                        }
-                        if (!net_in_common) {
-                            throw new Exception("You cannot link two containers that are not in the same network.");
-                        }
-                    }
                 }
             }
             System.out.println("Resulting bigraph: \n" + current);
